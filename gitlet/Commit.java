@@ -61,7 +61,7 @@ public class Commit implements Serializable ,Dumpable{
             System.out.println("making hash for file :- "+file);
             String hash = sha1(Utils.readContentsAsString(orignal));
             System.out.println("completed");
-            File destination = Utils.join(Repository.GITLET_DIR, hash);
+            File destination = Utils.join(Repository.blobs, hash);
 
 
             try{

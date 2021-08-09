@@ -20,21 +20,37 @@ public class Repository {
     public static final File CWD = new File(System.getProperty("user.dir"));
     public static final File GITLET_DIR = join(CWD, ".gitlet");
     public static final File commits = join(GITLET_DIR, "commits");
+    public static final File blobs = join(GITLET_DIR, "blobs");
     public static final File metaFolder = join(GITLET_DIR, "meta");
     public static final File repometa = join(metaFolder, "metafile");
 
     /** Checks if existing gitlet exists , if doesn't
      * makes a new one and adds branch master to it
      */
-    public static void test(){
-        File test = new File("dummy");
-        File dummy = new File("dummy.txt");
+    public static void setupPersistence() {
 
-        Utils.writeContents(test, Utils.readContentsAsString(dummy));
-        try {
-            test.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!GITLET_DIR.exists()) {
+            GITLET_DIR.mkdir();
+        }
+
+        if (!commits.exists()) {
+            commits.mkdir();
+        }
+
+        if (!blobs.exists()) {
+            blobs.mkdir();
+        }
+
+        if (!metaFolder.exists()) {
+            metaFolder.mkdir();
+        }
+
+        if (!repometa.exists()) {
+            try {
+                repometa.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -69,23 +85,12 @@ public class Repository {
     }
 
     public static void init() {
-        try {
-            if (!GITLET_DIR.exists()) {
-                GITLET_DIR.mkdir();
-                commits.mkdir();
-                metaFolder.mkdir();
-                repometa.createNewFile();
-
-                new meta("master", null).saveMeta();
-                new Commit("initial commit").saveCommit();
-            }else{
-                System.out.println("A Gitlet version-control system already exists in the current directory.");
-                System.exit(0);
-            }
-        } catch (Exception e) {
-            System.out.println(e);
+        if (!Utils.readContentsAsString(repometa).equals("")) {
+            System.out.println("A Gitlet version-control system already exists in the current directory.");
+        } else {
+            new meta("master", null).saveMeta();
+            new Commit("initial commit").saveCommit();
+            Utils.writeContents(repometa, "master");
         }
     }
-
-
 }

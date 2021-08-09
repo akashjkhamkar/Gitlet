@@ -1,5 +1,7 @@
 package gitlet;
 
+import java.io.IOException;
+
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author TODO
  */
@@ -14,12 +16,10 @@ public class Main {
             System.exit(0);
         }
 
+        Repository.setupPersistence();
 
         String firstArg = args[0];
         switch(firstArg) {
-            case "test":
-                Repository.test();
-                break;
             case "init":
                 validateNumArgs(args[0], args, 1);
                 Repository.init();
