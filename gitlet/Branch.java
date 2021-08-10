@@ -5,13 +5,13 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class meta implements Serializable, Dumpable{
+public class Branch implements Serializable, Dumpable{
     public String branchName;
     public String head;
     public String latest;
     public List<String> stagedFiles = new ArrayList<>();
 
-    meta(String name, String commit){
+    Branch(String name, String commit){
         branchName = name;
         latest = commit;
         head = commit;
@@ -24,7 +24,7 @@ public class meta implements Serializable, Dumpable{
             System.exit(0);
         }
         stagedFiles.add(file);
-        saveMeta();
+        saveBranch();
         System.out.println("added : "+file);
     }
 
@@ -36,10 +36,8 @@ public class meta implements Serializable, Dumpable{
         System.out.println("staged : "+stagedFiles);
     }
 
-    public void saveMeta() {
+    public void saveBranch() {
         File branchMeta = Utils.join(Repository.metaFolder, branchName);
-        metafile updatedRepoMeta = new metafile(branchName);
-
         try {
             if (!branchMeta.exists()){
                 branchMeta.createNewFile();
@@ -48,13 +46,12 @@ public class meta implements Serializable, Dumpable{
             System.out.println(e);
         }
 
-        Utils.writeObject(Repository.repometa, updatedRepoMeta);
         Utils.writeObject(branchMeta, this);
     }
 
-    public static meta getBranchMeta(String Branchname){
+    public static Branch getBranch(String Branchname){
         File branchMetafile = Utils.join(Repository.GITLET_DIR, "meta/"+Branchname);
-        return Utils.readObject(branchMetafile, meta.class);
+        return Utils.readObject(branchMetafile, Branch.class);
     }
 
 }

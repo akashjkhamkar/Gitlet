@@ -20,9 +20,6 @@ import static gitlet.Utils.*;
 
 public class Commit implements Serializable ,Dumpable{
     /** The message of this Commit. */
-    private static metafile repometa;
-    private static meta branchmeta;
-
     public Date date;
     public String message;
     public String parent;
@@ -37,13 +34,10 @@ public class Commit implements Serializable ,Dumpable{
     }
 
     Commit(String m){
-        repometa = metafile.getMeta();
-        branchmeta = meta.getBranchMeta(repometa.currentBranch);
-
         message = m;
         date = new Date();
-        branch = repometa.currentBranch;
-        parent = branchmeta.latest;
+        branch = Repository.current_branch_name;
+        parent = Repository.current_branch.latest;
 
         files = hashStagedFiles();
     }
@@ -51,7 +45,7 @@ public class Commit implements Serializable ,Dumpable{
 
     private static HashMap<String, String> hashStagedFiles(){
         HashMap<String, String> hashedFileNames = new HashMap<>();
-        for (String file: branchmeta.stagedFiles) {
+        for (String file: Repository.current_branch.stagedFiles) {
             File orignal = new File(file);
 
             if (!orignal.exists()){
@@ -78,7 +72,7 @@ public class Commit implements Serializable ,Dumpable{
             hashedFileNames.put(file,hash);
         }
 
-        branchmeta.stagedFiles.clear();
+        Repository.current_branch.stagedFiles.clear();
         return hashedFileNames;
     }
 
@@ -92,10 +86,8 @@ public class Commit implements Serializable ,Dumpable{
 
         try {
             if (!commit.exists()){
-                System.out.println("unique hash !");
                 commit.createNewFile();
             }else{
-                System.out.println("already exists !");
                 getCommit(hash).dump();
                 dump();
             }
@@ -103,7 +95,8 @@ public class Commit implements Serializable ,Dumpable{
             System.out.println(e);
         }
 
-        new meta(branch, hash).saveMeta();
+        // logging the latest commmit in branch
+        new Branch(branch, hash).saveBranch();
         Utils.writeObject(commit, this);
     }
 }

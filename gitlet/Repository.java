@@ -22,11 +22,19 @@ public class Repository {
     public static final File commits = join(GITLET_DIR, "commits");
     public static final File blobs = join(GITLET_DIR, "blobs");
     public static final File metaFolder = join(GITLET_DIR, "meta");
-    public static final File repometa = join(metaFolder, "metafile");
+    public static final File current_branch_file = join(metaFolder, "current");
 
-    /** Checks if existing gitlet exists , if doesn't
-     * makes a new one and adds branch master to it
-     */
+    public static String current_branch_name;
+    public static Branch current_branch;
+
+    public static void loadCurrentBranch(){
+        current_branch_name = Utils.readContentsAsString(current_branch_file);
+
+        if (!current_branch_name.equals("")){
+            current_branch = Branch.getBranch(current_branch_name);
+        }
+    }
+
     public static void setupPersistence() {
 
         if (!GITLET_DIR.exists()) {
@@ -45,39 +53,38 @@ public class Repository {
             metaFolder.mkdir();
         }
 
-        if (!repometa.exists()) {
+        if (!current_branch_file.exists()) {
             try {
-                repometa.createNewFile();
+                current_branch_file.createNewFile();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+
+        loadCurrentBranch();
     }
 
     public static void add(String fileName){
         File file = new File(fileName);
 
-        // 1. check if it exists !
         if (!file.exists()){
             System.out.println("File does not exist.");
             System.exit(0);
         }
 
-        // 2. check if the file is mutated
-        metafile repometafile = metafile.getMeta();
-        meta branch = meta.getBranchMeta(repometafile.currentBranch);
-        Commit headCommit = Commit.getCommit(branch.head);
+        Commit headCommit = Commit.getCommit(current_branch.head);
 
-        if (headCommit.files.containsValue(sha1(readContentsAsString(file)))){
+        String file_hash = sha1(readContentsAsString(file));
+        if (headCommit.files.containsValue(file_hash)){
             System.out.println("file is not changed!");
-            System.exit(0);
+            return;
         }
 
-        branch.addtoStage(fileName);
+        current_branch.addtoStage(fileName);
     }
 
     public static void commit(String m){
-        if (meta.getBranchMeta(metafile.getMeta().currentBranch).stagedFiles.isEmpty()){
+        if (current_branch.stagedFiles.isEmpty()){
             System.out.println("no files staged for commit !");
             System.exit(0);
         }
@@ -85,12 +92,15 @@ public class Repository {
     }
 
     public static void init() {
-        if (!Utils.readContentsAsString(repometa).equals("")) {
+        if (!current_branch_name.equals("")) {
             System.out.println("A Gitlet version-control system already exists in the current directory.");
         } else {
-            new meta("master", null).saveMeta();
+            new Branch("master", null).saveBranch();
+            Utils.writeContents(current_branch_file, "master");
+
+            loadCurrentBranch();
+
             new Commit("initial commit").saveCommit();
-            Utils.writeContents(repometa, "master");
         }
     }
 }
