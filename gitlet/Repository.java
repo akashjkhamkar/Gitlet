@@ -72,6 +72,10 @@ public class Repository {
         Commit.log();
     }
 
+    public static void globalLog(){
+        Commit.globalLog();
+    }
+
     public static void rm(String fileName){
         stage.removeFromStage(fileName);
         stage.saveStage();

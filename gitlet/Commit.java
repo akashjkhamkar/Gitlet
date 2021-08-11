@@ -6,8 +6,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.*;
 
-import static gitlet.Repository.current_branch;
-import static gitlet.Repository.stage;
+import static gitlet.Repository.*;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
@@ -32,17 +31,28 @@ public class Commit implements Serializable ,Dumpable{
         System.out.println(files);
     }
 
+    public static void details(Commit node, String hash){
+        System.out.println("===");
+        System.out.println("commit " + hash);
+        System.out.println("Date: " + node.date);
+        System.out.println(node.message);
+        System.out.println();
+    }
+
     public static void log(){
         String hash = current_branch.head;
         while (hash!=null){
             Commit node = Commit.getCommit(hash);
-            System.out.println("===");
-            System.out.println("commit " + hash);
-            System.out.println("Date: " + node.date);
-            System.out.println(node.message);
-            System.out.println();
-
+            details(node, hash);
             hash = node.parent;
+        }
+    }
+
+    public static void globalLog(){
+        List<String> allCommits = plainFilenamesIn(commits);
+        for (String hash: allCommits) {
+            Commit node = Commit.getCommit(hash);
+            details(node, hash);
         }
     }
 
