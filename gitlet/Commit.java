@@ -41,11 +41,18 @@ public class Commit implements Serializable ,Dumpable{
 
     public static void find(String m) {
         List<String> allCommits = plainFilenamesIn(commits);
+
+        boolean exists = false;
         for (String hash : allCommits) {
             Commit node = Commit.getCommit(hash);
             if (node.message.toLowerCase().contains(m.toLowerCase())) {
+                exists = true;
                 System.out.println(hash);
             }
+        }
+
+        if (!exists){
+            System.out.println("Found no commit with that message.");
         }
     }
 
