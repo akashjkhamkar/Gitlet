@@ -68,6 +68,10 @@ public class Repository {
         }
     }
 
+    public static void log(){
+        Commit.log();
+    }
+
     public static void rm(String fileName){
         stage.removeFromStage(fileName);
         stage.saveStage();

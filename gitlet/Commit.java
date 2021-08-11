@@ -32,6 +32,20 @@ public class Commit implements Serializable ,Dumpable{
         System.out.println(files);
     }
 
+    public static void log(){
+        String hash = current_branch.head;
+        while (hash!=null){
+            Commit node = Commit.getCommit(hash);
+            System.out.println("===");
+            System.out.println("commit " + hash);
+            System.out.println("Date: " + node.date);
+            System.out.println(node.message);
+            System.out.println();
+
+            hash = node.parent;
+        }
+    }
+
     Commit(String m){
         message = m;
         date = new Date();
