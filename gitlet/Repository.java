@@ -68,6 +68,10 @@ public class Repository {
         }
     }
 
+    public static void find(String m){
+        Commit.find(m);
+    }
+
     public static void log(){
         Commit.log();
     }

@@ -39,6 +39,16 @@ public class Commit implements Serializable ,Dumpable{
         System.out.println();
     }
 
+    public static void find(String m) {
+        List<String> allCommits = plainFilenamesIn(commits);
+        for (String hash : allCommits) {
+            Commit node = Commit.getCommit(hash);
+            if (node.message.toLowerCase().contains(m.toLowerCase())) {
+                System.out.println(hash);
+            }
+        }
+    }
+
     public static void log(){
         String hash = current_branch.head;
         while (hash!=null){
