@@ -23,20 +23,13 @@ public class Repository {
     public static final File blobs = join(GITLET_DIR, "blobs");
     public static final File metaFolder = join(GITLET_DIR, "meta");
     public static final File current_branch_file = join(metaFolder, "current");
+    public static final File stageFile = join(GITLET_DIR, "stage");
 
     public static String current_branch_name;
     public static Branch current_branch;
-
-    public static void loadCurrentBranch(){
-        current_branch_name = Utils.readContentsAsString(current_branch_file);
-
-        if (!current_branch_name.equals("")){
-            current_branch = Branch.getBranch(current_branch_name);
-        }
-    }
+    public static Stage stage;
 
     public static void setupPersistence() {
-
         if (!GITLET_DIR.exists()) {
             GITLET_DIR.mkdir();
         }
@@ -53,7 +46,14 @@ public class Repository {
             metaFolder.mkdir();
         }
 
-        if (!current_branch_file.exists()) {
+        if (!stageFile.exists()){
+            stage = new Stage();
+            stage.saveStage();
+        }else{
+            stage = Stage.getStage();
+        }
+
+        if (!current_branch_file.exists()){
             try {
                 current_branch_file.createNewFile();
             } catch (IOException e) {
@@ -61,32 +61,27 @@ public class Repository {
             }
         }
 
-        loadCurrentBranch();
+        current_branch_name = Utils.readContentsAsString(current_branch_file);
+
+        if (!current_branch_name.equals("")){
+            current_branch = Branch.getBranch(current_branch_name);
+        }
+    }
+
+    public static void rm(String fileName){
+        stage.removeFromStage(fileName);
+        stage.saveStage();
     }
 
     public static void add(String fileName){
-        File file = new File(fileName);
-
-        if (!file.exists()){
-            System.out.println("File does not exist.");
-            System.exit(0);
-        }
-
-        Commit headCommit = Commit.getCommit(current_branch.head);
-
-        String file_hash = sha1(readContentsAsString(file));
-        if (headCommit.files.containsValue(file_hash)){
-            System.out.println("file is not changed!");
-            return;
-        }
-
-        current_branch.addtoStage(fileName);
+        stage.addToStage(fileName);
+        stage.saveStage();
     }
 
     public static void commit(String m){
-        if (current_branch.stagedFiles.isEmpty()){
-            System.out.println("no files staged for commit !");
-            System.exit(0);
+        if (!stage.areFilesStaged()){
+            System.out.println("No changes added to the commit.");
+            return;
         }
         new Commit(m).saveCommit();
     }
@@ -97,8 +92,8 @@ public class Repository {
         } else {
             new Branch("master", null).saveBranch();
             Utils.writeContents(current_branch_file, "master");
-
-            loadCurrentBranch();
+            current_branch_name = "master";
+            current_branch = Branch.getBranch(current_branch_name);
 
             new Commit("initial commit").saveCommit();
         }

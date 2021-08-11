@@ -32,7 +32,10 @@ public class Main {
                 validateNumArgs(args[0], args, 2);
                 Repository.add(args[1]);
                 break;
-            // TODO: FILL THE REST IN
+            case "rm":
+                validateNumArgs(args[0], args, 2);
+                Repository.rm(args[1]);
+                break;
         }
     }
 

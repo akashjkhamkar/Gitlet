@@ -4,11 +4,10 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Date; // TODO: You'll likely use this in this class
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
+import static gitlet.Repository.current_branch;
+import static gitlet.Repository.stage;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
@@ -24,7 +23,7 @@ public class Commit implements Serializable ,Dumpable{
     public String message;
     public String parent;
     public String branch;
-    public HashMap<String, String> files;
+    public TreeMap<String, String> files;
 
     public void dump(){
         System.out.println(date);
@@ -39,41 +38,46 @@ public class Commit implements Serializable ,Dumpable{
         branch = Repository.current_branch_name;
         parent = Repository.current_branch.latest;
 
-        files = hashStagedFiles();
+        if (parent != null){
+            files = updatedTree();
+        }else{
+            files = new TreeMap<String, String>();
+        }
     }
 
+    // take the staging area
 
-    private static HashMap<String, String> hashStagedFiles(){
-        HashMap<String, String> hashedFileNames = new HashMap<>();
-        for (String file: Repository.current_branch.stagedFiles) {
-            File orignal = new File(file);
+    // iterate over last commmit files
+    // add updated files
+    // add new files
+    // dont add removed files
+    // clear staging area
 
-            if (!orignal.exists()){
-                continue;
-            }
+    private static TreeMap<String, String> updatedTree(){
+        TreeMap<String, String> updatedtree = Commit.getCommit(current_branch.head).files;
+        TreeMap<String, String> stagedFiles = stage.getStagedFiles();
+        TreeMap<String, String> removedFiles = stage.getRemovedFiles();
 
-            System.out.println("making hash for file :- "+file);
-            String hash = sha1(Utils.readContentsAsString(orignal));
-            System.out.println("completed");
-            File destination = Utils.join(Repository.blobs, hash);
+        // updating old files, adding newly added files
+        for (Map.Entry<String, String> entry: stagedFiles.entrySet()){
+            String filename = entry.getKey();
+            String filehash = entry.getValue();
 
-
-            try{
-                if (!destination.exists()){
-                    destination.createNewFile();
-                }else{
-                    continue;
-                }
-            }catch (Exception e) {
-                System.out.println(e);
-            }
-
-            Utils.writeContents(destination, Utils.readContentsAsString(orignal));
-            hashedFileNames.put(file,hash);
+            updatedtree.put(filename, filehash);
         }
 
-        Repository.current_branch.stagedFiles.clear();
-        return hashedFileNames;
+        // removing the removed files
+        for (Map.Entry<String, String> entry: removedFiles.entrySet()){
+            String filename = entry.getKey();
+
+            updatedtree.remove(filename);
+        }
+
+        // clear stage
+        stage.clearStage();
+
+        System.out.println(updatedtree);
+        return updatedtree;
     }
 
     public static Commit getCommit(String name){
