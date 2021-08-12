@@ -74,29 +74,78 @@ public class Repository {
             return;
         }
 
-        if (args.length == 3 && args[1].equals("--")){
+        if ((args.length == 3 && args[1].equals("--")) || (args.length == 4 && (args[2].equals("--")))) {
+            String fileName;
+            Commit commit;
+
+            if (args[1].equals("--")) {
+                fileName = args[2];
+                commit = Commit.getCommit(current_branch.head);
+
+            }else {
+                fileName = args[3];
+                String commitId = args[1];
+                if (!join(commits, commitId).exists()){
+                    System.out.println("No commit with that id exists.");
+                    return;
+                }
+                commit = Commit.getCommit(commitId);
+            }
             // restore from the last commit
-            String fileName = args[2];
             File file = join(CWD, fileName);
 
-            Commit lastCommit = Commit.getCommit(current_branch.head);
-            TreeMap<String, String> trackedFiles = lastCommit.files;
+            TreeMap<String, String> trackedFiles = commit.files;
 
             if (!trackedFiles.containsKey(fileName)){
                 System.out.println("File does not exist in that commit.");
                 return;
             }
             writeContents(file, readContentsAsString(join(blobs, trackedFiles.get(fileName))));
-
-        }else if (args.length == 4 && args[2].equals("--")){
-            // restore from the specified commit
-            System.out.println("from specified commit");
         }else if (args.length == 2){
             // change branch
-            System.out.println("changing the branch");
+
+            // 1. we need to delete whole directory
+            // 2. paste all the files from the checked out files
+            // if any untracked files are present , give warning
+            String checkedBranch = args[1];
+
+            if (current_branch_name.equals(checkedBranch)){
+                System.out.println("No need to checkout the current branch.");
+                return;
+            }else if (!join(metaFolder, checkedBranch).exists()){
+                System.out.println("No such branch exists.");
+                return;
+            }
+            else if (stage.getUntrackedFiles().size() != 0){
+                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                return;
+            }
+
+            // clearing stage
+            stage.clearStage();
+
+            // deleting whole directory
+            for (String filetoBeDeleted: plainFilenamesIn(CWD)){
+                restrictedDelete(join(CWD, filetoBeDeleted));
+            }
+
+            // copying contents of the checked out branches head files
+            String checkedCommit = Branch.getBranch(checkedBranch).head;
+            TreeMap<String, String> newfiles = Commit.getCommit(checkedCommit).files;
+
+            for (Map.Entry<String, String> entry: newfiles.entrySet()) {
+                String fileName = entry.getKey();
+                String hash = entry.getValue();
+
+                writeContents(join(CWD, fileName), readContentsAsString(join(blobs, hash)));
+            }
+
+            Utils.writeContents(current_branch_file, checkedBranch);
+
         }else{
             System.out.println("wrong arg");
         }
+
     }
 
     // 1. head commmit will have 2 owners

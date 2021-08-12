@@ -1,9 +1,7 @@
 package gitlet;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
-import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +23,20 @@ public class Stage implements Serializable, Dumpable{
     public void dump(){
         System.out.println("stage :" + staged);
         System.out.println("removed :" + removed);
+    }
+
+    public List<String> getUntrackedFiles(){
+        List<String> dirFiles = plainFilenamesIn(CWD);
+        List<String> untracked = new ArrayList<String>();
+        TreeMap<String, String> commitFiles = Commit.getCommit(current_branch.head).files;
+
+        for (String fileName: dirFiles) {
+            if ((commitFiles.containsKey(fileName) && removed.containsKey(fileName)) || (!commitFiles.containsKey(fileName) && !staged.containsKey(fileName))){
+                untracked.add(fileName);
+            }
+        }
+
+        return untracked;
     }
 
     public void status(){
