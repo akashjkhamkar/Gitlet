@@ -1,11 +1,8 @@
 package gitlet;
 
-import jdk.jshell.execution.Util;
-
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -17,7 +14,8 @@ import static gitlet.Utils.*;
  */
 public class Repository {
     /** The current working directory. */
-    public static final File CWD = new File(System.getProperty("user.dir"));
+    public static final File CWD_real = new File(System.getProperty("user.dir"));
+    public static final File CWD = join(CWD_real, "CWD_safe");
     public static final File GITLET_DIR = join(CWD, ".gitlet");
     public static final File commits = join(GITLET_DIR, "commits");
     public static final File blobs = join(GITLET_DIR, "blobs");
@@ -66,6 +64,54 @@ public class Repository {
         if (!current_branch_name.equals("")){
             current_branch = Branch.getBranch(current_branch_name);
         }
+    }
+
+    public static void checkout(String[] args){
+        System.out.println(Arrays.toString(args));
+
+        if (args.length > 4 || args.length < 2) {
+            System.out.println("wrong args");
+            return;
+        }
+
+        if (args.length == 3 && args[1].equals("--")){
+            // restore from the last commit
+            String fileName = args[2];
+            File file = join(CWD, fileName);
+
+            Commit lastCommit = Commit.getCommit(current_branch.head);
+            TreeMap<String, String> trackedFiles = lastCommit.files;
+
+            if (!trackedFiles.containsKey(fileName)){
+                System.out.println("File does not exist in that commit.");
+                return;
+            }
+            writeContents(file, readContentsAsString(join(blobs, trackedFiles.get(fileName))));
+
+        }else if (args.length == 4 && args[2].equals("--")){
+            // restore from the specified commit
+            System.out.println("from specified commit");
+        }else if (args.length == 2){
+            // change branch
+            System.out.println("changing the branch");
+        }else{
+            System.out.println("wrong arg");
+        }
+    }
+
+    // 1. head commmit will have 2 owners
+    public static void branch(String branchName){
+        File newBranch = join(metaFolder, branchName);
+        if (newBranch.exists()){
+            System.out.println("A branch with that name already exists.");
+        }else{
+            new Branch(branchName, current_branch.head).saveBranch();
+        }
+    }
+
+    public static void status(){
+        Branch.status();
+        stage.status();
     }
 
     public static void find(String m){

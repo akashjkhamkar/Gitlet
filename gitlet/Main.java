@@ -48,6 +48,19 @@ public class Main {
                 validateNumArgs(args[0], args, 2);
                 Repository.find(args[1]);
                 break;
+            case "status":
+                validateNumArgs(args[0], args, 1);
+                Repository.status();
+                break;
+            case "branch":
+                validateNumArgs(args[0], args, 2);
+                Repository.branch(args[1]);
+                break;
+            case "checkout":
+                // TODO: fix validation
+//                validateNumArgs(args[0], args, 2);
+                Repository.checkout(args);
+                break;
         }
     }
 
