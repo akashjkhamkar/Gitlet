@@ -61,6 +61,14 @@ public class Main {
 //                validateNumArgs(args[0], args, 2);
                 Repository.checkout(args);
                 break;
+            case "rm-branch":
+                validateNumArgs(args[0], args, 2);
+                Repository.rm_branch(args[1]);
+                break;
+            case "reset":
+                validateNumArgs(args[0], args, 2);
+                Repository.checkout(args);
+                break;
         }
     }
 

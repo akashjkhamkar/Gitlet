@@ -66,6 +66,16 @@ public class Repository {
         }
     }
 
+    public static void rm_branch(String branchName){
+        if (current_branch_name.equals(branchName)){
+            System.out.println("Cannot remove the current branch.");
+        }else if (!join(metaFolder, branchName).exists()){
+            System.out.println("A branch with that name does not exist.");
+        }else{
+            join(metaFolder, branchName).delete();
+        }
+    }
+
     public static void checkout(String[] args){
         System.out.println(Arrays.toString(args));
 
@@ -107,16 +117,28 @@ public class Repository {
             // 1. we need to delete whole directory
             // 2. paste all the files from the checked out files
             // if any untracked files are present , give warning
-            String checkedBranch = args[1];
+            String checkedOut;
 
-            if (current_branch_name.equals(checkedBranch)){
-                System.out.println("No need to checkout the current branch.");
-                return;
-            }else if (!join(metaFolder, checkedBranch).exists()){
-                System.out.println("No such branch exists.");
-                return;
+            if (args[0].equals("checkout")){
+                checkedOut = args[1];
+                if (current_branch_name.equals(checkedOut)){
+                    System.out.println("No need to checkout the current branch.");
+                    return;
+                }else if (!join(metaFolder, checkedOut).exists()){
+                    System.out.println("No such branch exists.");
+                    return;
+                }
+            }else {
+                // validation for reset command
+                // check if the commit exist
+                checkedOut = args[1];
+                if (!join(commits, checkedOut).exists()){
+                    System.out.println("No commit with that id exists.");
+                    return;
+                }
             }
-            else if (stage.getUntrackedFiles().size() != 0){
+
+            if (stage.getUntrackedFiles().size() != 0){
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 return;
             }
@@ -129,9 +151,22 @@ public class Repository {
                 restrictedDelete(join(CWD, filetoBeDeleted));
             }
 
-            // copying contents of the checked out branches head files
-            String checkedCommit = Branch.getBranch(checkedBranch).head;
-            TreeMap<String, String> newfiles = Commit.getCommit(checkedCommit).files;
+            // copying contents of the checked out branche's/commits files
+            TreeMap<String, String> newfiles;
+            if (args[0].equals("checkout")){
+                String checkedCommit = Branch.getBranch(checkedOut).head;
+                newfiles = Commit.getCommit(checkedCommit).files;
+                Utils.writeContents(current_branch_file, checkedOut);
+            }else{
+                Commit checkedCommit = Commit.getCommit(checkedOut);
+                newfiles = checkedCommit.files;
+
+                // updating head of the branch
+                Utils.writeContents(current_branch_file, checkedCommit.branch);
+                Branch checkedBranch = Branch.getBranch(checkedCommit.branch);
+                checkedBranch.head = checkedOut;
+                checkedBranch.saveBranch();
+            }
 
             for (Map.Entry<String, String> entry: newfiles.entrySet()) {
                 String fileName = entry.getKey();
@@ -140,7 +175,6 @@ public class Repository {
                 writeContents(join(CWD, fileName), readContentsAsString(join(blobs, hash)));
             }
 
-            Utils.writeContents(current_branch_file, checkedBranch);
 
         }else{
             System.out.println("wrong arg");
