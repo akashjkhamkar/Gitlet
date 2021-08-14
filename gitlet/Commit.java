@@ -20,7 +20,7 @@ public class Commit implements Serializable ,Dumpable{
     /** The message of this Commit. */
     public Date date;
     public String message;
-    public String parent;
+    public List<String> parents;
     public String branch;
     public TreeMap<String, String> files;
 
@@ -31,9 +31,28 @@ public class Commit implements Serializable ,Dumpable{
         System.out.println(files);
     }
 
+    Commit(String m){
+        message = m;
+        date = new Date();
+        branch = Repository.current_branch_name;
+        parents = new ArrayList<String>();
+        parents.add(Repository.current_branch.latest);
+
+        if (parents.get(0) != null){
+            files = updatedTree();
+        }else{
+            files = new TreeMap<String, String>();
+        }
+    }
+
     public static void details(Commit node, String hash){
         System.out.println("===");
         System.out.println("commit " + hash);
+        if (node.parents.size() == 2){
+            String hash1 = node.parents.get(0).substring(0,7);
+            String hash2 = node.parents.get(1).substring(0,7);
+            System.out.println("Merge: " + hash1 + " " + hash2);
+        }
         System.out.println("Date: " + node.date);
         System.out.println(node.message);
         System.out.println();
@@ -56,13 +75,20 @@ public class Commit implements Serializable ,Dumpable{
         }
     }
 
-    public static void log(){
-        String hash = current_branch.head;
+    public static List<String> log(String commitId, Boolean verbose){
+        String hash = commitId;
+        List<String> history = new ArrayList<String>();
         while (hash!=null){
+            history.add(hash);
             Commit node = Commit.getCommit(hash);
-            details(node, hash);
-            hash = node.parent;
+
+            if (verbose){
+                details(node, hash);
+            }
+
+            hash = node.parents.get(0);
         }
+        return history;
     }
 
     public static void globalLog(){
@@ -70,19 +96,6 @@ public class Commit implements Serializable ,Dumpable{
         for (String hash: allCommits) {
             Commit node = Commit.getCommit(hash);
             details(node, hash);
-        }
-    }
-
-    Commit(String m){
-        message = m;
-        date = new Date();
-        branch = Repository.current_branch_name;
-        parent = Repository.current_branch.latest;
-
-        if (parent != null){
-            files = updatedTree();
-        }else{
-            files = new TreeMap<String, String>();
         }
     }
 

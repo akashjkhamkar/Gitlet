@@ -69,6 +69,9 @@ public class Main {
                 validateNumArgs(args[0], args, 2);
                 Repository.checkout(args);
                 break;
+            case "merge":
+                validateNumArgs(args[0], args, 2);
+                Repository.merge(args[1]);
         }
     }
 

@@ -66,6 +66,180 @@ public class Repository {
         }
     }
 
+    private static String splitPoint(String commit1, String commit2){
+        // find a path till initial commit of repo,
+        // iterate to find the common split point
+        List<String> path1 = Commit.log(commit1, false);
+        List<String> path2 = Commit.log(commit2, false);
+
+        for (String node: path1) {
+            if (path2.contains(node)){
+                return node ;
+            }
+        }
+
+        System.out.println("something went wrong :(");
+        return null;
+    }
+
+    private static void conflict(String fileName, String hash1, String hash2){
+        String resultantFile = "<<<<<<< HEAD\n";
+
+        if (hash1 != null){
+            resultantFile += readContentsAsString(join(blobs, hash1));
+        }
+        resultantFile += "=======\n";
+
+        if (hash2 != null){
+            resultantFile += readContentsAsString(join(blobs, hash2));
+        }
+        resultantFile += ">>>>>>>";
+
+        // update the file in cwd
+        writeContents(join(CWD, fileName), resultantFile);
+    }
+
+    public static void merge(String branchName){
+        if (!join(metaFolder, branchName).exists()){
+            System.out.println("A branch with that name does not exist.");
+            return;
+        }
+
+        if (branchName.equals(current_branch_name)){
+            System.out.println("Cannot merge a branch with itself.");
+            return;
+        }
+
+        if (stage.areFilesStaged()){
+            System.out.println("You have uncommitted changes.");
+            return;
+        }
+
+        if (stage.getUntrackedFiles().size() != 0){
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            return;
+        }
+
+        // find the split point
+        String currentId = current_branch.latest;
+        String givenId = Branch.getBranch(branchName).latest;
+        String splitPointId = splitPoint(currentId, givenId);
+
+        Commit currentCommit = Commit.getCommit(currentId);
+        Commit givenCommit = Commit.getCommit(givenId);
+        Commit splitPoint = Commit.getCommit(splitPointId);
+
+        // fast forward merge
+        if (splitPointId.equals(givenId)){
+            System.out.println("Given branch is an ancestor of the current branch.");
+            return;
+        }
+
+        if (splitPointId.equals(currentId)){
+
+            // adding the references to the both commits
+            // first one is the current braches last commit, second is where this commit came from
+            // updating the current branches pointer to new commit (done in savecommit)
+            givenCommit.parents.add(0, currentId);
+            givenCommit.branch = current_branch_name;
+            givenCommit.saveCommit();
+
+
+            // deleting the branch file
+            rm_branch(branchName);
+
+            // checkout the merged commit
+            String[] args = {"reset", sha1(serialize(givenCommit))};
+            checkout(args);
+
+            System.out.println("Current branch fast-forwarded.");
+            return;
+        }
+
+        // 3 way merge
+        TreeMap<String, String> currentFiles = currentCommit.files;
+        TreeMap<String, String> givenFiles = givenCommit.files;
+        TreeMap<String, String> splitFiles = splitPoint.files;
+
+        boolean conflictsFound = false;
+
+        for (Map.Entry<String, String> entry: givenFiles.entrySet()){
+            String fileName = entry.getKey();
+            String givenHash = entry.getValue();
+
+            // if both have the file
+            if (splitFiles.containsKey(fileName) && currentFiles.containsKey(fileName)){
+                String currentHash = currentFiles.get(fileName);
+                String splitHash = splitFiles.get(fileName);
+
+                // 1. modified in the given but not in the current
+                // 2. vice versa
+                if (givenHash.equals(splitHash) && !currentHash.equals(splitHash)){
+                    continue;
+                }else if (!givenHash.equals(splitHash) && currentHash.equals(splitHash)){
+                    writeContents(join(CWD, fileName), readContentsAsString(join(blobs, givenHash)));
+                    add(fileName);
+                }else if (givenHash.equals(currentHash)){
+                    continue;
+                }else {
+                    conflict(fileName, currentHash, givenHash);
+                    conflictsFound = true;
+                    add(fileName);
+                }
+                continue;
+            }
+
+            if (splitFiles.containsKey(fileName)){
+                String splitHash = splitFiles.get(fileName);
+                if (!splitHash.equals(givenHash)){
+                    conflict(fileName, null, givenHash);
+                    conflictsFound = true;
+                    add(fileName);
+                }
+                continue;
+            }
+
+            if (currentFiles.containsKey(fileName)){
+                String currentHash = currentFiles.get(fileName);
+                if (!currentHash.equals(givenHash)){
+                    conflict(fileName, currentHash, givenHash);
+                    conflictsFound = true;
+                    add(fileName);
+                }
+                continue;
+            }
+
+            writeContents(join(CWD, fileName), readContentsAsString(join(blobs, givenHash)));
+            add(fileName);
+        }
+
+        for (Map.Entry<String, String> entry: currentFiles.entrySet()){
+            String fileName = entry.getKey();
+            String currentHash = entry.getValue();
+
+            if (splitFiles.containsKey(fileName) && !givenFiles.containsKey(fileName)){
+                String splitHash = splitFiles.get(fileName);
+                if (currentHash.equals(splitHash)){
+                    rm(fileName);
+                }else{
+                    conflict(fileName, currentHash, null);
+                    conflictsFound = true;
+                    add(fileName);
+                }
+            }
+        }
+
+        Commit newCommit = commit("Merged "+ branchName + " into " + current_branch_name);
+        if (newCommit != null){
+            newCommit.parents.add(givenId);
+            newCommit.saveCommit();
+            join(metaFolder, branchName).delete();
+        }
+        if (conflictsFound){
+            System.out.println("Encountered a merge conflict.");
+        }
+    }
+
     public static void rm_branch(String branchName){
         if (current_branch_name.equals(branchName)){
             System.out.println("Cannot remove the current branch.");
@@ -202,7 +376,7 @@ public class Repository {
     }
 
     public static void log(){
-        Commit.log();
+        Commit.log(current_branch.head, true);
     }
 
     public static void globalLog(){
@@ -219,12 +393,14 @@ public class Repository {
         stage.saveStage();
     }
 
-    public static void commit(String m){
+    public static Commit commit(String m){
         if (!stage.areFilesStaged()){
             System.out.println("No changes added to the commit.");
-            return;
+            return null;
         }
-        new Commit(m).saveCommit();
+        Commit newCommit = new Commit(m);
+        newCommit.saveCommit();
+        return newCommit;
     }
 
     public static void init() {
