@@ -130,7 +130,6 @@ public class Commit implements Serializable ,Dumpable{
         // clear stage
         stage.clearStage();
 
-        System.out.println(updatedtree);
         return updatedtree;
     }
 

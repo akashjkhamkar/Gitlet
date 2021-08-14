@@ -14,8 +14,8 @@ import static gitlet.Utils.*;
  */
 public class Repository {
     /** The current working directory. */
-    public static final File CWD_real = new File(System.getProperty("user.dir"));
-    public static final File CWD = join(CWD_real, "CWD_safe");
+    public static final File CWD = new File(System.getProperty("user.dir"));
+//    public static final File CWD = join(CWD_real, "CWD_safe");
     public static final File GITLET_DIR = join(CWD, ".gitlet");
     public static final File commits = join(GITLET_DIR, "commits");
     public static final File blobs = join(GITLET_DIR, "blobs");
@@ -251,8 +251,6 @@ public class Repository {
     }
 
     public static void checkout(String[] args){
-        System.out.println(Arrays.toString(args));
-
         if (args.length > 4 || args.length < 2) {
             System.out.println("wrong args");
             return;
