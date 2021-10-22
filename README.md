@@ -1,2 +1,2 @@
 # gitlet
-Gitlet is a lightweight git implementation using java 
+Gitlet is a lightweight java implementation of git, made for learning purposes
